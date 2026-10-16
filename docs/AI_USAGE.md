@@ -1,0 +1,43 @@
+# How AI was used
+
+> Draft. Edit it to reflect your own prompts and judgement.
+
+AI (Factory Droid) was used to scaffold the app, write the setup script and draft the docs. The
+LaunchDarkly SDK behaviour was checked against the installed package type definitions
+(`node_modules/launchdarkly-react-client-sdk/lib/types`) rather than trusted from memory.
+
+## Prompts, in order
+
+1. "Use this brief to build a LaunchDarkly sample app and presentation." Clarified SDK (React client),
+   pillar (Observe), credentials and repo publishing before writing code.
+2. Scaffolded the Vite + React app with a payments scenario chosen to match a UK bank's real
+   regulatory pressure (Confirmation of Payee, APP fraud).
+3. Checked `asyncWithLDProvider`, `reactOptions`, `variationDetail`, `track` and `identify`
+   signatures against the installed SDK.
+4. Wrote the REST API setup script, then the docs.
+
+## Where AI output was corrected in this session
+
+| AI draft | Problem | Fix |
+| --- | --- | --- |
+| Treated a green `vite build` as proof the app worked | With no `VITE_LD_CLIENT_SIDE_ID`, Vite inlined `undefined` and removed the whole app as dead code | Checked the bundle for UI strings; documented that the ID is a build-time input |
+| Re-rendered the flag panel by rendering the flag count into a hidden span | A hack that hides intent | Replaced with a `useFlags()` subscription |
+| First browser screenshots came out tiled and corrupted | The viewport was resized mid-capture | Dropped screenshots and verified with page text instead |
+
+## Common LaunchDarkly mistakes from AI, designed out up front
+
+These were checked against the SDK's type definitions instead of trusted from memory:
+
+| Common mistake | Why it matters | What this repo does |
+| --- | --- | --- |
+| Using the server SDK key in a browser app | Leaks a secret to every customer | Client-side ID only, explained in `.env.example` |
+| Leaving the default camelCase flag keys | Code and dashboard keys diverge, which breaks code references and incident searches | `useCamelCaseFlagKeys: false` and a single `flags.js` |
+| Creating flags without client-side availability | React SDK gets `FLAG_NOT_FOUND` and silently uses fallbacks | `clientSideAvailability.usingEnvironmentId: true` in the setup script |
+| No initialisation timeout | App waits indefinitely if LaunchDarkly is unreachable | `timeout: 3` and a visible fallback banner |
+
+## Verified
+
+- `npm run build` succeeds.
+- With an invalid client-side ID, the app renders the current journey, keeps payments on, and shows
+  a warning banner (`FLAG_NOT_FOUND` reasons in the inspector).
+- The live LaunchDarkly path needs a real client-side ID and was not verified by the AI.
