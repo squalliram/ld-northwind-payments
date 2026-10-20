@@ -20,6 +20,7 @@ LaunchDarkly SDK behaviour was checked against the installed package type defini
 
 | AI draft | Problem | Fix |
 | --- | --- | --- |
+| Put name and email in the context as private attributes, and claimed in the README and deck that they "never reach LaunchDarkly" | False for client-side SDKs: private attributes are still sent for evaluation, only kept out of events and storage | Removed PII from the context entirely; verified by decoding the contexts the browser sends |
 | Treated a green `vite build` as proof the app worked | With no `VITE_LD_CLIENT_SIDE_ID`, Vite inlined `undefined` and removed the whole app as dead code | Checked the bundle for UI strings; documented that the ID is a build-time input |
 | Re-rendered the flag panel by rendering the flag count into a hidden span | A hack that hides intent | Replaced with a `useFlags()` subscription |
 | First browser screenshots came out tiled and corrupted | The viewport was resized mid-capture | Dropped screenshots and verified with page text instead |

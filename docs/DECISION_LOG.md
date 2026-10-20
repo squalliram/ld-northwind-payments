@@ -28,22 +28,32 @@ switch cannot be used, so the runbook needs a second way to stop payments.
 
 Other choices: one flag per purpose (release vs. ops) with naming prefixes so ownership and lifetime
 are obvious, targeting by country so a release follows regulatory approval market by market, and
-name/email as private attributes (GDPR data minimisation).
+no names or emails in the context at all (GDPR data minimisation).
 
 ## 2. An AI suggestion I overrode
 
-> Replace this with an example from your own session if you have a better one.
+The AI's design for customer privacy was to put name and email in the LaunchDarkly context and
+mark them as **private attributes**. It then wrote that they "never reach LaunchDarkly" into the
+README, and "no names or emails are sent" into the deck, as our answer to the data-protection
+objection.
 
-The AI reported the first production build as passing, and it did compile. But the bundle was
-150 KB and contained none of the app. Vite inlines `VITE_` variables at build time. With no
-client-side ID set, `if (!clientSideID) return` became `if (true) return`, and the minifier
-removed the app as dead code. A green build was hiding an app that could not run. I checked the
-bundle for the UI strings rather than trusting the build output, then documented that the ID is a
-build-time input (so CI needs it per environment, which matters for Test vs Production).
+That is true for server-side SDKs. It is not true for the client-side SDK I chose. LaunchDarkly's
+own docs say a client-side SDK still sends private attributes to LaunchDarkly to evaluate flags.
+They are only kept out of analytics events and not stored. So the line we were about to give a
+bank's InfoSec team and DPO was wrong.
 
-I also overrode a smaller AI shortcut: it forced the flag panel to re-render by printing the flag
-count into a hidden element. I replaced it with a plain `useFlags()` subscription.
+I removed name and email from the context entirely. No targeting rule uses them, so there was never
+a reason to send them. The context is now only the opaque key, `country`, `isEmployee` and
+`customerType`. I checked this by decoding the contexts the browser sends to LaunchDarkly and
+reading the event payloads: no names or emails, and targeting still works for every persona.
 
+Why my call was better: the AI chose the feature whose name sounded right and wrote a confident
+claim on top of it. Private attributes are the right tool when you have to target on a sensitive
+value. Data minimisation (GDPR) says not to send what you don't use. And in a regulated deal, one
+wrong answer to the security reviewer costs more trust than the demo earns.
+
+A smaller catch: the first production build "passed" but Vite had removed the whole app as dead
+code, because the client-side ID is inlined at build time. I checked the bundle, not the green tick.
 ## 3. What I would do differently for a 50-person startup
 
 Skip the separate Production environment with required comments and change approvals, and run

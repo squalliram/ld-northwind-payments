@@ -27,8 +27,10 @@ it must reach customers gradually and be reversible in seconds.
 | Lena Schmidt | `country: DE` | v1 (not yet approved outside the UK) |
 | Atelier Moreau SARL | `country: FR`, `customerType: business` | v1 |
 
-Name and email are sent as **private attributes**, so they never reach LaunchDarkly. Targeting only
-uses the opaque key, `country`, `isEmployee` and `customerType`.
+The context sent to LaunchDarkly contains only the opaque key, `country`, `isEmployee` and
+`customerType`. Names and emails are left out on purpose. Marking them as private attributes would
+not be enough, because a client-side SDK still sends private attributes to LaunchDarkly for
+evaluation (it only keeps them out of events and storage).
 
 ## Environment assumptions
 
@@ -160,7 +162,7 @@ Switch to Lena Schmidt (DE): the form changes to **Current journey (v1)** withou
 ```
 src/
   flags.js               flag keys, fallbacks and metric event keys in one place
-  personas.js            demo customers and context builder (private attributes)
+  personas.js            demo customers and context builder (no PII sent)
   telemetry.js           sends the three guardrail events for every payment
   paymentService.js      simulated payments API with an injectable regression
   components/
