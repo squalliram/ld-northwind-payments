@@ -40,7 +40,14 @@ async function createIfMissing(label, path, body) {
 
 async function ensureProject() {
   const existing = await ld('GET', `/projects/${projectKey}`);
+  if (existing.status === 401 || existing.status === 403) {
+    throw new Error(`LaunchDarkly rejected LD_API_TOKEN (${existing.status}). Check it is valid, not expired, and has the Writer role.`);
+  }
   if (existing.status === 200) {
+    if (!existing.data.environments?.some?.((e) => e.key === envKey)) {
+      const envs = await ld('GET', `/projects/${projectKey}/environments/${envKey}`);
+      if (envs.status !== 200) throw new Error(`Project ${projectKey} has no environment "${envKey}". Set LD_ENVIRONMENT_KEY to an existing environment.`);
+    }
     console.log(`  exists   project ${projectKey}`);
     return;
   }
@@ -88,7 +95,7 @@ async function main() {
 
   const metrics = [
     { key: 'payment-failed', name: 'Payment failure rate', eventKey: 'payment-failed', isNumeric: false, successCriteria: 'LowerThanBaseline' },
-    { key: 'payment-latency-ms', name: 'Payment latency (ms)', eventKey: 'payment-latency-ms', isNumeric: true, unit: 'ms', successCriteria: 'LowerThanBaseline' },
+    { key: 'payment-latency-ms', name: 'Payment latency (ms)', eventKey: 'payment-latency-ms', isNumeric: true, unit: 'ms', unitAggregationType: 'average', analysisType: 'mean', successCriteria: 'LowerThanBaseline' },
     { key: 'payment-submitted', name: 'Payment completion', eventKey: 'payment-submitted', isNumeric: false, successCriteria: 'HigherThanBaseline' },
   ];
   for (const m of metrics) {

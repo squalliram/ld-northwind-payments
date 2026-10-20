@@ -30,12 +30,17 @@ it must reach customers gradually and be reversible in seconds.
 Name and email are sent as **private attributes**, so they never reach LaunchDarkly. Targeting only
 uses the opaque key, `country`, `isEmployee` and `customerType`.
 
-## Prerequisites
+## Environment assumptions
 
-- Node.js 20 or later
-- A LaunchDarkly account (a trial works)
-- Optional: a LaunchDarkly API access token with the Writer role, to create flags with the setup script
-
+| Area | Assumption |
+| --- | --- |
+| Runtime | Node.js **20.6 or later** (the setup script uses `node --env-file`). Tested on Node 20.20 on macOS. |
+| Browser | Any current Chrome, Edge, Firefox or Safari. The app runs at http://localhost:5173. |
+| LaunchDarkly account | A trial or paid account. Guarded rollouts (demo step 4) must be included in your plan. Everything else works on any plan. |
+| LaunchDarkly project | Project key `northwind-payments`, environment `test`. You can use other keys: set `LD_PROJECT_KEY` and `LD_ENVIRONMENT_KEY` in `.env`. The app itself only needs the environment's client-side ID. |
+| Environments | Segments are per environment. Every resource in the table below must exist in the environment whose client-side ID you use. |
+| Backend | None. Payments and Confirmation of Payee are simulated in the browser. No real money or personal data is involved. |
+| Secrets | `.env` is git-ignored. It holds the client-side ID (not secret) and, optionally, an API token (secret, used only by the setup script). |
 ## Setup
 
 ```bash
@@ -47,19 +52,33 @@ cp .env.example .env
 
 ### 1. Create the LaunchDarkly resources
 
-**Option A: script (recommended).** Put `LD_API_TOKEN` in `.env`, then run:
+None of the flags, segment or metrics come with the repo. You must re-create them in your own
+LaunchDarkly account, with **exactly the keys below**, because the app looks them up by key.
+
+**Option A: setup script (recommended).**
+
+1. In LaunchDarkly, go to *Organization settings > Authorization* and create an API access token
+   with the **Writer** role.
+2. Put it in `.env` as `LD_API_TOKEN=...`.
+3. Run:
 
 ```bash
 npm run ld:setup
 ```
 
-It creates the `northwind-payments` project (Test and Production environments, with comments
-required on Production changes), the segment, metrics, flags and targeting rules shown below, and
-prints the client-side ID. It is safe to re-run.
+The script creates the `northwind-payments` project (Test and Production environments, with comments
+required on Production changes), then the segment, metrics, flags and targeting rules in the
+`test` environment. It skips anything that already exists, so it is safe to re-run. At the end it
+prints the line to paste into `.env`:
 
-**Option B: by hand in the LaunchDarkly UI.** Create these in your project. On both flags, tick
-**SDKs using Client-side ID** under *Client-side SDK availability*. If you skip that, the React SDK
-cannot see the flag and silently uses the code fallback.
+```
+Done. Put this in .env:
+VITE_LD_CLIENT_SIDE_ID=<your client-side ID>
+```
+
+**Option B: by hand in the LaunchDarkly UI.** Create these in your project and environment. On both
+flags, tick **SDKs using Client-side ID** under *Client-side SDK availability*. If you skip that, the
+React SDK cannot see the flag and silently uses the code fallback.
 
 | Type | Key | Details |
 | --- | --- | --- |
@@ -67,15 +86,21 @@ cannot see the flag and silently uses the code fallback.
 | Flag (boolean, permanent) | `ops-outbound-payments-enabled` | On, serving `true`. Off variation `false`. Turning the flag **off** pauses all payments. |
 | Segment | `beta-customers` | Include user key `usr-beta-042` |
 | Metric (custom, conversion) | `payment-failed` | Event key `payment-failed`, lower is better |
-| Metric (custom, numeric) | `payment-latency-ms` | Event key `payment-latency-ms`, unit ms, lower is better |
+| Metric (custom, numeric) | `payment-latency-ms` | Event key `payment-latency-ms`, unit ms, average, lower is better |
 | Metric (custom, conversion) | `payment-submitted` | Event key `payment-submitted`, higher is better |
+
+**Where the keys live in code.** Every flag key and metric event key is defined once, in
+[`src/flags.js`](src/flags.js). If you have to use different keys in LaunchDarkly, change them there.
+Persona keys and attributes used by the targeting rules (for example `usr-beta-042`) are in
+[`src/personas.js`](src/personas.js).
 
 ### 2. Configure the app
 
-Set the **client-side ID** of the environment in `.env`:
+Set the **client-side ID** of the environment in `.env`. Option A prints it. Otherwise find it under
+*Project settings > Environments > (your environment) > Client-side ID*.
 
 ```
-VITE_LD_CLIENT_SIDE_ID=<client-side ID from Project settings > Environments>
+VITE_LD_CLIENT_SIDE_ID=<client-side ID>
 ```
 
 Use the client-side ID, not the SDK key. The SDK key is a server-side secret and must never be
@@ -87,8 +112,30 @@ shipped to a browser.
 npm run dev
 ```
 
-Open http://localhost:5173. Vite reads `VITE_` variables at build time, so restart the dev server
+Open http://localhost:5173. Vite reads `VITE_` variables when it starts, so restart the dev server
 after you change `.env`.
+
+### 4. Check that it works
+
+Signed in as Aisha Patel (the default persona), you should see:
+
+- **no** yellow "LaunchDarkly could not be reached" banner
+- the **New journey (v2)** badge on the payment form
+- in the right-hand panel, `release-payee-verification-v2` = `true`, reason *Matched targeting rule 1*,
+  and `ops-outbound-payments-enabled` = `true`
+
+Switch to Lena Schmidt (DE): the form changes to **Current journey (v1)** without a page reload.
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| "LaunchDarkly is not configured" page | `VITE_LD_CLIENT_SIDE_ID` is empty. Set it and restart `npm run dev`. |
+| Yellow banner, reasons show `Error: FLAG_NOT_FOUND` | Wrong client-side ID, or the flags don't have *SDKs using Client-side ID* ticked, or they were created in a different environment. |
+| Aisha gets v1, reason *Default rule* | Rule 1 is missing or the flag is off in this environment. |
+| Tom Hughes gets v1 | The `beta-customers` segment is missing in this environment, or doesn't include `usr-beta-042`. |
+| `npm run ld:setup` says the token was rejected | The API token is wrong, expired, or doesn't have the Writer role. |
+| `node: bad option: --env-file` | Node is older than 20.6. Upgrade Node. |
 
 ## Demo script
 
@@ -97,11 +144,16 @@ after you change `.env`.
 2. **Kill switch.** In LaunchDarkly, turn `ops-outbound-payments-enabled` off. The app pauses
    payments in about a second with no refresh, and the change appears in the live log. Turn it back on.
 3. **Instant rollback.** Turn `release-payee-verification-v2` off. Every customer is back on v1.
-4. **Guarded rollout (Observe).** Edit rule 3 (UK customers) to a *Guarded rollout*, add the
-   `payment-failed` and `payment-latency-ms` metrics, and turn on automatic rollback. Back in the app,
-   tick **Inject a regression into v2** and click **Simulate UK customer traffic**. The regressed
-   group's failure rate and latency rise, and LaunchDarkly detects the regression and rolls the rule back.
-5. **Audit.** Open the flag's *History* tab to see who changed what, when, and the comment explaining why.
+4. **Guarded rollout (Observe).** Set it up once in LaunchDarkly:
+   1. Open `release-payee-verification-v2` in the `test` environment and find rule 3 (UK customers).
+   2. Change what the rule serves from `false` to **Guarded rollout**, rolling out `true`.
+   3. Add the metrics `payment-failed` and `payment-latency-ms`, and turn on **automatic rollback**.
+   4. Review and save.
+
+   Back in the app, tick **Inject a regression into v2** and click **Simulate UK customer traffic**
+   (200 synthetic UK customers who match rule 3). The v2 group's failure rate and latency rise. The
+   panel summarises both groups, and LaunchDarkly flags the regression and rolls the rule back to
+   `false`. Run the simulation a few times if the rollout needs more data.5. **Audit.** Open the flag's *History* tab to see who changed what, when, and the comment explaining why.
 
 ## Project layout
 
@@ -120,6 +172,8 @@ scripts/
 docs/
   DECISION_LOG.md        decisions, trade-offs and risks
   AI_USAGE.md            how AI was used and where it was overridden
+  northwind-value-playback.pptx   value playback deck
+.env.example             every environment variable, with where to find each value
 ```
 
 ## Known limitations (not production-ready)
@@ -129,3 +183,9 @@ docs/
 - Payments and Confirmation of Payee are simulated.
 - The traffic generator calls `identify` in a loop to create synthetic customers. That is for the
   demo only.
+
+## Reviewer access
+
+Reviewers are invited as members of the `northwind-payments` LaunchDarkly project (*Organization
+settings > Members > Invite members*), so the flags, segment, environments, metrics and change
+history can be reviewed in the LaunchDarkly UI.
