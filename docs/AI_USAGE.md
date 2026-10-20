@@ -40,4 +40,8 @@ These were checked against the SDK's type definitions instead of trusted from me
 - `npm run build` succeeds.
 - With an invalid client-side ID, the app renders the current journey, keeps payments on, and shows
   a warning banner (`FLAG_NOT_FOUND` reasons in the inspector).
-- The live LaunchDarkly path needs a real client-side ID and was not verified by the AI.
+- `npm run ld:setup` ran against a real LaunchDarkly account and created every resource. A second
+  run left existing resources unchanged.
+- Connected to that account, the app served each persona the expected journey and reason:
+  Aisha v2 (rule 1), Tom v2 (rule 2), Lena and Atelier Moreau v1 (default rule), with no fallback banner.
+- Not yet verified end to end: the guarded rollout detecting the injected regression and rolling back.
