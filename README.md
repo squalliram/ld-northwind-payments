@@ -11,7 +11,7 @@ ship a change to a high-risk journey (outbound payments) faster, without raising
 
 Why Observe and not Iterate: for a bank with low risk appetite, the first question leadership asks is
 "how do we know a release is not hurting customers?", not "which variant converts better?".
-Experimentation comes once there is trust in the release process. See [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md).
+Experimentation comes once there is trust in the release process.
 
 ## The scenario in the app
 
@@ -179,7 +179,6 @@ src/
 scripts/
   setup-launchdarkly.mjs creates project, segment, metrics, flags and rules via the REST API
 docs/
-  DECISION_LOG.md        decisions, trade-offs and risks
   AI_USAGE.md            how AI was used and where it was overridden
   DEMO_FLOW.md           timed demo navigation, value bites, stories and fallbacks
   SPEAKER_NOTES.md       talk tracks and discovery questions for all 19 slides
@@ -189,8 +188,9 @@ docs/
 
 ## Known limitations (not production-ready)
 
-- **No secure mode.** A client-side app can claim any context key. Production use needs secure mode,
-  with the context hash computed by the bank's backend. See the decision log.
+- **Browser flags are not authorization.** Production must enforce identity, eligibility and payment
+  execution on the backend. Secure mode can protect context identity keys, but it does not make
+  arbitrary browser-supplied attributes trustworthy.
 - Payments and Confirmation of Payee are simulated.
 - The traffic generator calls `identify` in a loop to create synthetic customers. That is for the
   demo only.

@@ -1,7 +1,5 @@
 # How AI was used
 
-> Draft. Edit it to reflect your own prompts and judgement.
-
 AI (Factory Droid) was used to scaffold the app, write the setup script and draft the docs. The
 LaunchDarkly SDK behaviour was checked against the installed package type definitions
 (`node_modules/launchdarkly-react-client-sdk/lib/types`) rather than trusted from memory.

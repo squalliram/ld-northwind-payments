@@ -22,7 +22,7 @@ Full slide-by-slide talk tracks and discovery questions: [SPEAKER_NOTES.md](SPEA
 
 ## Preflight, before the meeting
 
-1. Use the up-to-date clone and its own `.env`. Run `npm install` and `npm run dev` from that clone. If using the Downloads clone, pull the latest changes first. Never display the API token, `.env`, SDK key or authorization headers on screen.
+1. Use an up-to-date clone and configure its `.env` as described in the README. Run `npm install` and `npm run dev` from that clone. Never display the API token, `.env`, SDK key or authorization headers on screen.
 2. Open two tabs/windows side by side: app at `http://localhost:5173`, and LaunchDarkly → **Northwind Payments** → **Test**. UI labels can vary; verify them in the current account.
 3. In the app confirm Aisha = v2/rule 1, Tom = v2/rule 2, Lena and Atelier = v1/default, with payments enabled and no regression injected. Ensure both flags are available to the client SDK.
 4. Open `release-payee-verification-v2` → **Targeting**. Rules: staff true; beta segment AND GB true; GB false (guarded rollout belongs here); default false. Keep staff/beta ahead of the general UK rule.
