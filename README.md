@@ -141,6 +141,10 @@ Switch to Lena Schmidt (DE): the form changes to **Current journey (v1)** withou
 
 ## Demo script
 
+For the timed tell-show-tell presentation, product navigation, customer stories and honest fallbacks,
+see [`docs/DEMO_FLOW.md`](docs/DEMO_FLOW.md). Slide-by-slide discovery questions and talk tracks are in
+[`docs/SPEAKER_NOTES.md`](docs/SPEAKER_NOTES.md) and embedded in the PowerPoint.
+
 1. **Targeting.** Switch personas in the header. Aisha and Tom get the new journey, Lena and Atelier
    Moreau do not. The right-hand panel shows the value and the *reason* (which rule matched).
 2. **Kill switch.** In LaunchDarkly, turn `ops-outbound-payments-enabled` off. The app pauses
@@ -155,7 +159,10 @@ Switch to Lena Schmidt (DE): the form changes to **Current journey (v1)** withou
    Back in the app, tick **Inject a regression into v2** and click **Simulate UK customer traffic**
    (200 synthetic UK customers who match rule 3). The v2 group's failure rate and latency rise. The
    panel summarises both groups, and LaunchDarkly flags the regression and rolls the rule back to
-   `false`. Run the simulation a few times if the rollout needs more data.5. **Audit.** Open the flag's *History* tab to see who changed what, when, and the comment explaining why.
+   `false`. Analysis requires sufficient traffic and observation time; repeated simulations reuse
+   context keys and do not guarantee a decision. Rehearse and verify the completed rollback before
+   presenting it as proven.
+5. **Audit.** Open the flag's *History* tab to see who changed what, when, and the comment explaining why.
 
 ## Project layout
 
@@ -174,6 +181,8 @@ scripts/
 docs/
   DECISION_LOG.md        decisions, trade-offs and risks
   AI_USAGE.md            how AI was used and where it was overridden
+  DEMO_FLOW.md           timed demo navigation, value bites, stories and fallbacks
+  SPEAKER_NOTES.md       talk tracks and discovery questions for all 19 slides
   northwind-value-playback.pptx   value playback deck
 .env.example             every environment variable, with where to find each value
 ```
